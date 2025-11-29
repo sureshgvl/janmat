@@ -4,13 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:janmat/features/user/models/user_model.dart';
-import 'package:janmat/utils/theme_constants.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../../models/plan_model.dart';
 import '../../../models/payment_model.dart';
 import '../../../models/body_model.dart';
 import '../../../utils/snackbar_utils.dart';
+import '../../../utils/app_logger.dart';
 import '../services/razorpay_service.dart';
 import '../../highlight/controller/highlight_plan_banner_controller.dart' as hc;
 import '../../highlight/services/highlight_service.dart';
@@ -19,7 +20,6 @@ import '../repositories/monetization_repository.dart';
 import '../widgets/plan_purchase_success_dialog.dart';
 import '../widgets/plan_benefits_showcase.dart';
 import '../widgets/welcome_content_preview.dart';
-import '../../../utils/app_logger.dart';
 
 class MonetizationController extends GetxController {
   final MonetizationRepository _repository = MonetizationRepository();
@@ -27,9 +27,7 @@ class MonetizationController extends GetxController {
   // Reactive variables
   var plans = <SubscriptionPlan>[].obs;
   var userSubscriptions = <UserSubscription>[].obs;
-  ////var xpTransactions = <XPTransaction>[].o // COMMENTED: XP balance not displayedbs; // COMMENTED: XP balance not displayed
   var paymentHistory = <PaymentTransaction>[].obs;
-  ////var userXPBalance = 0.o // COMMENTED: XP balance not displayedbs; // COMMENTED: XP balance not displayed
   var isLoading = false.obs;
   var errorMessage = ''.obs;
 
@@ -407,7 +405,7 @@ class MonetizationController extends GetxController {
         isActive: true,
       );
 
-      final subscriptionId = await _repository.createSubscription(subscription);
+      await _repository.createSubscription(subscription);
 
       // Update user based on plan type
       if (plan.type == 'candidate') {
@@ -742,56 +740,147 @@ class MonetizationController extends GetxController {
   }
 
   // Handle successful payment
-  void handlePaymentSuccess(PaymentSuccessResponse response) {
-    // Extract plan details from stored payment data (for web) or orderId (for mobile)
-    String? planId;
-    String? electionType;
-    int validityDays = 30; // Default
+  void handlePaymentSuccess(PaymentSuccessResponse response) async {
+    try {
+      AppLogger.razorpay('🔄 PAYMENT SUCCESS HANDLER: Starting immediate payment capture');
+      AppLogger.razorpay('📋 Payment ID: ${response.paymentId}');
+      AppLogger.razorpay('📋 Order ID: ${response.orderId}');
+      AppLogger.razorpay('📋 Signature: ${response.signature}');
 
-    // First check if we have stored payment data (web flow)
-    final storedData = _lastPaymentData;
-    if (storedData != null) {
-      planId = storedData['planId'];
-      electionType = storedData['electionType'];
-      validityDays = storedData['validityDays'] ?? 30;
-      // Clear stored data after use
-      _lastPaymentData = null;
-    } else {
-      // Mobile flow - extract from orderId
-      final orderParts = response.orderId?.split('_') ?? [];
-      if (orderParts.length >= 2) {
-        planId = orderParts[1];
-        if (orderParts.length >= 4) {
-          electionType = orderParts[2];
-          validityDays = int.tryParse(orderParts[3] ?? '30') ?? 30;
+      // Extract plan details from stored payment data (for web) or orderId (for mobile)
+      String? planId;
+      String? electionType;
+      int validityDays = 30; // Default
+
+      // First check if we have stored payment data (web flow)
+      final storedData = _lastPaymentData;
+      if (storedData != null) {
+        planId = storedData['planId'];
+        electionType = storedData['electionType'];
+        validityDays = storedData['validityDays'] ?? 30;
+        // Clear stored data after use
+        _lastPaymentData = null;
+      } else {
+        // Mobile flow - extract from orderId
+        final orderParts = response.orderId?.split('_') ?? [];
+        if (orderParts.length >= 2) {
+          planId = orderParts[1];
+          if (orderParts.length >= 4) {
+            electionType = orderParts[2];
+            validityDays = int.tryParse(orderParts[3] ?? '30') ?? 30;
+          }
         }
       }
-    }
 
-    if (planId != null) {
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser != null) {
-        // Complete the purchase with appropriate data
-        if (electionType != null && validityDays > 0) {
-          // Election-based plan
-          _completePurchaseAfterPaymentWithElection(
-            currentUser.uid,
-            planId,
-            electionType,
-            validityDays,
-          );
-        } else {
-          // Legacy plan
-          _completePurchaseAfterPayment(currentUser.uid, planId);
+      if (planId != null) {
+        final currentUser = FirebaseAuth.instance.currentUser;
+        if (currentUser != null) {
+          // CRITICAL: Capture payment immediately to avoid Razorpay 10-minute cutoff
+          AppLogger.razorpay('🚨 CRITICAL: Capturing payment immediately due to 10-minute cutoff');
+          await _capturePaymentImmediately(response);
+
+          // Complete the purchase with appropriate data
+          if (electionType != null && validityDays > 0) {
+            // Election-based plan
+            await _completePurchaseAfterPaymentWithElection(
+              currentUser.uid,
+              planId,
+              electionType,
+              validityDays,
+            );
+          } else {
+            // Legacy plan
+            await _completePurchaseAfterPayment(currentUser.uid, planId);
+          }
         }
+      } else {
+        AppLogger.razorpayError(
+          'Failed to extract plan details from payment response',
+        );
+        SnackbarUtils.showError(
+          'Payment processing failed - could not identify plan',
+        );
       }
-    } else {
-      AppLogger.razorpayError(
-        'Failed to extract plan details from payment response',
-      );
+    } catch (e) {
+      AppLogger.razorpayError('❌ Error in handlePaymentSuccess: $e');
       SnackbarUtils.showError(
-        'Payment processing failed - could not identify plan',
+        'Payment processing failed. Please contact support.',
       );
+    }
+  }
+
+  // Capture payment immediately (critical for 10-minute cutoff)
+  Future<void> _capturePaymentImmediately(PaymentSuccessResponse response) async {
+    try {
+      AppLogger.razorpay('🚨 IMMEDIATE CAPTURE: Starting critical payment capture for 10-minute cutoff');
+
+      // First check if we have an order ID - this means auto-capture should happen
+      if (response.orderId != null && response.orderId!.isNotEmpty) {
+        AppLogger.razorpay('✅ Order ID found - Razorpay should auto-capture within seconds');
+        return;
+      }
+
+      // No order ID means we MUST manually capture immediately due to 10-minute cutoff
+      AppLogger.razorpay('⚠️ CRITICAL: No order ID - manual capture REQUIRED within 10 minutes!');
+
+      // Call manual capture via Firebase Function
+      final result = await _manualCapturePayment(response.paymentId!);
+
+      if (result) {
+        AppLogger.razorpay('✅ MANUAL CAPTURE SUCCESSFUL - Payment secured within 10-minute window');
+      } else {
+        AppLogger.razorpayError('❌ CRITICAL FAILURE: Manual capture failed within 10-minute window');
+        AppLogger.razorpay('🚨 PAYMENT AT RISK: May be auto-refunded by Razorpay within minutes');
+        SnackbarUtils.showError('Payment capture failed. Please contact support immediately.');
+      }
+
+    } catch (e) {
+      AppLogger.razorpayError('❌ CRITICAL ERROR: Immediate capture failed: $e');
+      AppLogger.razorpay('🚨 PAYMENT SECURITY BREACH: Immediate manual intervention required');
+      // Still continue with purchase processing even if capture fails
+    }
+  }
+
+
+
+  // Manual payment capture via Firebase Function
+  Future<bool> _manualCapturePayment(String paymentId) async {
+    try {
+      AppLogger.razorpay('🎯 ATTEMPTING MANUAL PAYMENT CAPTURE via Firebase Function');
+
+      final functions = FirebaseFunctions.instance;
+
+      final result = await functions
+          .httpsCallable('manualCapturePayment')
+          .call({
+            'paymentId': paymentId,
+          });
+
+      if (result.data['success'] == true) {
+        AppLogger.razorpay('✅ Manual capture successful for payment: $paymentId');
+        return true;
+      } else {
+        AppLogger.razorpay('❌ Manual capture failed: ${result.data}');
+        return false;
+      }
+    } catch (e) {
+      AppLogger.razorpayError('❌ Error calling manual capture function: $e');
+
+      // Fallback: Try to capture using Razorpay API directly (if we had server-side access)
+      AppLogger.razorpay('🔄 Falling back to alternative capture method...');
+
+      try {
+        // For now, log the need for capture - we'll implement the Firebase Function
+        AppLogger.razorpay('⚠️ PAYMENT CAPTURE REQUIRED: $paymentId needs manual capture');
+        AppLogger.razorpay('📝 TODO: Create manualCapturePayment Firebase Function');
+
+        // Return false to indicate capture is needed but cannot be done yet
+        return false;
+
+      } catch (fallbackError) {
+        AppLogger.razorpayError('❌ Fallback capture also failed: $fallbackError');
+        return false;
+      }
     }
   }
 
@@ -1625,7 +1714,7 @@ class MonetizationController extends GetxController {
           title: 'Warning',
           message:
               'Your premium plan expires in $daysUntilExpiry days. Renew now to avoid service interruption.',
-          backgroundColor: AppColors.snackBarWarning,
+          backgroundColor: Colors.orange,
           textColor: Colors.black,
           icon: const Icon(Icons.warning, color: Colors.black),
           duration: const Duration(seconds: 3),

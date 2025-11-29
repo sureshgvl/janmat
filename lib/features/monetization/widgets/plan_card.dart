@@ -21,6 +21,8 @@ class PlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('DEBUG: PlanCard building for planId: ${plan.planId}, name: ${plan.name}');
+
     final isLimitedOffer =
         isCandidatePlan && controller.isFirst1000PlanAvailable;
 
@@ -60,7 +62,7 @@ class PlanCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      plan.name,
+                      _getLocalizedPlanName(context, plan.planId) ?? plan.name,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -172,7 +174,7 @@ class PlanCard extends StatelessWidget {
                 ),
                 child: Center(
                   child: Text(
-                    _getCurrentPlanDisplayText(currentPlanId),
+                    _getCurrentPlanDisplayText(context, currentPlanId),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -288,19 +290,19 @@ class PlanCard extends StatelessWidget {
     return 'Plan not available';
   }
 
-  String _getCurrentPlanDisplayText(String? currentPlanId) {
+  String _getCurrentPlanDisplayText(BuildContext context, String? currentPlanId) {
     if (currentPlanId == plan.planId) {
       switch (plan.planId) {
         case 'free_plan':
-          return 'Free Plan Active';
+          return AppLocalizations.of(context)!.freePlanActive;
         case 'basic_plan':
-          return 'Basic Plan Active';
+          return AppLocalizations.of(context)!.basicPlanActive;
         case 'gold_plan':
-          return 'Gold Plan Active';
+          return AppLocalizations.of(context)!.goldPlanActive;
         case 'platinum_plan':
-          return 'Platinum Plan Active';
+          return AppLocalizations.of(context)!.platinumPlanActive;
         default:
-          return 'Current Plan';
+          return AppLocalizations.of(context)!.currentPlan;
       }
     }
     return '';
@@ -758,7 +760,7 @@ class PlanCard extends StatelessWidget {
     BuildContext context,
     String currentPlanId,
   ) async {
-    final currentPlanName = _getPlanDisplayName(currentPlanId);
+    final currentPlanName = _getPlanDisplayName(context, currentPlanId);
     final result = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -820,16 +822,34 @@ class PlanCard extends StatelessWidget {
     return result ?? false;
   }
 
-  String _getPlanDisplayName(String planId) {
+  String? _getLocalizedPlanName(BuildContext context, String planId) {
     switch (planId) {
       case 'free_plan':
-        return 'Free Plan';
+        return AppLocalizations.of(context)!.freePlanName;
       case 'basic_plan':
-        return 'Basic Plan';
+        return AppLocalizations.of(context)!.basicPlanName;
       case 'gold_plan':
-        return 'Gold Plan';
+        return AppLocalizations.of(context)!.goldPlanName;
       case 'platinum_plan':
-        return 'Platinum Plan';
+        return AppLocalizations.of(context)!.platinumPlanName;
+      case 'highlight_plan':
+      case 'highlight': // In case the planId contains 'highlight'
+        return AppLocalizations.of(context)!.highlightPlanName;
+      default:
+        return null; // Fall back to plan.name from database
+    }
+  }
+
+  String _getPlanDisplayName(BuildContext context, String planId) {
+    switch (planId) {
+      case 'free_plan':
+        return AppLocalizations.of(context)!.freePlanName;
+      case 'basic_plan':
+        return AppLocalizations.of(context)!.basicPlanName;
+      case 'gold_plan':
+        return AppLocalizations.of(context)!.goldPlanName;
+      case 'platinum_plan':
+        return AppLocalizations.of(context)!.platinumPlanName;
       default:
         return 'Unknown Plan';
     }

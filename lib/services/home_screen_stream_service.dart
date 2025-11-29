@@ -181,27 +181,41 @@ class HomeScreenStreamService {
         // Cache routing data for future instant loads (no-op)
         AppLogger.common('⚡ Routing data caching skipped (no caching) for: $userId');
 
-        // Initialize candidate controller if user is a candidate
+        // Initialize candidate controller if user is a candidate - ARCHITECTURAL FIX
         if (userModel.role == 'candidate') {
           try {
             final candidateController = Get.find<CandidateUserController>();
-            // CRITICAL FIX: Always set user first, then set candidate data if available
-            candidateController.user.value = userModel; // Set the correct user data FIRST
-            AppLogger.common('👤 Candidate controller user role: ${candidateController.user.value?.role}', tag: 'HOME_CHECK');
 
-            if (candidateModel != null) {
-              candidateController.candidate.value = candidateModel;
-              candidateController.isInitialized.value = true;
-              AppLogger.common('✅ Synchronized candidate data to controller for user: $userId');
+            // ARCHITECTURAL FIX: Prevent redundant controller initialization during app lifecycle events
+            // Only call initializeForCandidate() on first initialization, not on every data refresh
+            if (!candidateController.isInitialized.value || candidateController.user.value?.uid != userModel.uid) {
+              AppLogger.common('🎯 Initializing candidate controller (first-time or user changed): $userId');
+
+              // Set user data first (critical for initialization order)
+              candidateController.user.value = userModel;
+              AppLogger.common('👤 Candidate controller user role: ${candidateController.user.value?.role}', tag: 'HOME_CHECK');
+
+              if (candidateModel != null) {
+                candidateController.candidate.value = candidateModel;
+                candidateController.isInitialized.value = true;
+                AppLogger.common('✅ Synchronized candidate data to controller for user: $userId');
+              } else {
+                candidateController.isInitialized.value = false;
+                AppLogger.common('⚠️ No candidate data available, will load via initializeForCandidate()', tag: 'HOME_CHECK');
+              }
+
+              candidateController.initializeForCandidate();
+              AppLogger.common('✅ Candidate controller initialization triggered for user: $userId');
             } else {
-              // Only set initialized to true if we actually have candidate data
-              // Otherwise leave it false so initializeForCandidate() will load fresh data
-              candidateController.isInitialized.value = false;
-              AppLogger.common('⚠️ No candidate data available, will load via initializeForCandidate()', tag: 'HOME_CHECK');
-            }
+              // Controller already initialized - just sync latest data without re-initialization
+              AppLogger.common('🔄 Skipping redundant candidate controller initialization for: $userId');
 
-            candidateController.initializeForCandidate();
-            AppLogger.common('✅ Candidate controller initialization triggered for user: $userId');
+              // Still sync latest user/candidate data for consistency
+              candidateController.user.value = userModel;
+              if (candidateModel != null) {
+                candidateController.candidate.value = candidateModel;
+              }
+            }
           } catch (e) {
             AppLogger.commonError('❌ Failed to initialize candidate controller', error: e);
           }

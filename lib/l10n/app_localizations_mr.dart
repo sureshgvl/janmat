@@ -528,6 +528,14 @@ class AppLocalizationsMr extends AppLocalizations {
   }
 
   @override
+  String purchasePlanForAmount(Object amount) {
+    return '$amount रुपयांसाठी योजना खरेदी करा';
+  }
+
+  @override
+  String get keyFeatures => 'मुख्य वैशिष्ट्ये';
+
+  @override
   String get electionTypeUpper => 'म्युनिसिपल कॉर्पोरेशन';
 
   @override
@@ -715,6 +723,9 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get platinumPlanName => 'प्लॅटिनम योजना';
+
+  @override
+  String get highlightPlanName => 'हायलाइट योजना';
 
   @override
   String get activeFreePlan => 'सक्रिय विनामूल्य योजना';

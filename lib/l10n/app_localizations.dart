@@ -1061,6 +1061,18 @@ abstract class AppLocalizations {
   /// **'Purchase {planName}'**
   String purchasePlan(Object planName);
 
+  /// No description provided for @purchasePlanForAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase plan for Rs {amount}'**
+  String purchasePlanForAmount(Object amount);
+
+  /// No description provided for @keyFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Key Features'**
+  String get keyFeatures;
+
   /// No description provided for @electionTypeUpper.
   ///
   /// In en, this message translates to:
@@ -1402,6 +1414,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Platinum Plan'**
   String get platinumPlanName;
+
+  /// No description provided for @highlightPlanName.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlight Plan'**
+  String get highlightPlanName;
 
   /// No description provided for @activeFreePlan.
   ///

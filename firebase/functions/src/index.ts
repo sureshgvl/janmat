@@ -768,6 +768,84 @@ export const razorpayWebhook = functions.https.onRequest(async (req, res) => {
   }
 });
 
+// Capture Razorpay Payment Manually (for payments authorized without order ID)
+export const manualCapturePayment = functions.https.onCall(async (data, context) => {
+  try {
+    console.log('🎯 Starting manual payment capture...');
+
+    // Check if user is authenticated
+    if (!context.auth?.uid) {
+      throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+    }
+
+    const { paymentId } = data;
+
+    if (!paymentId) {
+      throw new functions.https.HttpsError('invalid-argument', 'paymentId is required');
+    }
+
+    console.log(`💳 Attempting to capture payment: ${paymentId}`);
+
+    // Call Razorpay capture API
+    try {
+      const captureResponse = await razorpay.payments.capture(paymentId);
+
+      console.log('✅ Payment captured successfully:', captureResponse.id);
+
+      // Update payment record in Firestore
+      const db = admin.firestore();
+      await db.collection('razorpay_payments').doc(paymentId).update({
+        captured: true,
+        capturedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      console.log('✅ Payment record updated in Firestore');
+
+      return {
+        success: true,
+        paymentId: paymentId,
+        captured: true,
+      };
+
+    } catch (captureError: any) {
+      console.error('❌ Capture API error:', captureError);
+
+      // Check for specific Razorpay errors
+      if (captureError?.error?.code === 'PAYMENT_ALREADY_CAPTURED') {
+        console.log('ℹ️ Payment was already captured');
+        return {
+          success: true,
+          paymentId: paymentId,
+          alreadyCaptured: true,
+        };
+      }
+
+      if (captureError?.error?.code === 'PAYMENT_NOT_AUTHORIZED') {
+        console.log('❌ Payment not authorized for capture');
+        return {
+          success: false,
+          paymentId: paymentId,
+          error: 'Payment not authorized',
+        };
+      }
+
+      throw captureError;
+    }
+
+  } catch (error: any) {
+    console.error('❌ Error in manual payment capture:', error);
+    console.error('❌ Error details:', JSON.stringify(error, null, 2));
+
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+
+    const errorMessage = error?.message || error?.error?.description || 'Unknown error';
+    throw new functions.https.HttpsError('internal', `Failed to capture payment: ${errorMessage}`);
+  }
+});
+
 // Verify Razorpay Payment Signature
 export const verifyRazorpayPayment = functions.https.onCall(async (data, context) => {
   try {

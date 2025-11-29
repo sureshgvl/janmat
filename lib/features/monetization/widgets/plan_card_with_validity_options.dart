@@ -162,7 +162,7 @@ class _PlanCardWithValidityOptionsState
                   children: [
                     Expanded(
                       child: Text(
-                        widget.plan.name,
+                        _getLocalizedPlanName(context, widget.plan.planId) ?? widget.plan.name,
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -191,8 +191,8 @@ class _PlanCardWithValidityOptionsState
               const SizedBox(height: 16),
 
               // Features List
-              const Text(
-                'Features:',
+              Text(
+                AppLocalizations.of(context)!.features,
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
@@ -258,7 +258,7 @@ class _PlanCardWithValidityOptionsState
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Purchase plan for Rs $singlePrice',
+                        AppLocalizations.of(context)!.purchasePlanForAmount('₹$singlePrice'),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -283,7 +283,7 @@ class _PlanCardWithValidityOptionsState
             children: [
               Expanded(
                 child: Text(
-                  widget.plan.name,
+                  _getLocalizedPlanName(context, widget.plan.planId) ?? widget.plan.name,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -316,8 +316,8 @@ class _PlanCardWithValidityOptionsState
           const SizedBox(height: 8),
 
           // Key Features - Compact version
-          const Text(
-            'Key Features:',
+          Text(
+            AppLocalizations.of(context)!.keyFeatures,
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
           ),
           const SizedBox(height: 4),
@@ -401,7 +401,7 @@ class _PlanCardWithValidityOptionsState
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Purchase plan for Rs ${pricing[validityOptions.first]!}',
+                      AppLocalizations.of(context)!.purchasePlanForAmount('₹${pricing[validityOptions.first]!}'),
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -520,7 +520,7 @@ class _PlanCardWithValidityOptionsState
                     ],
                     Text(
                       selectedValidityDays != null
-                          ? 'Purchase plan for Rs ${pricing[selectedValidityDays!]!}'
+                          ? AppLocalizations.of(context)!.purchasePlanForAmount('₹${pricing[selectedValidityDays!]!}')
                           : AppLocalizations.of(context)!.selectValidityPeriod,
                       style: const TextStyle(
                         fontSize: 14,
@@ -564,7 +564,7 @@ class _PlanCardWithValidityOptionsState
                   children: [
                     Expanded(
                       child: Text(
-                        widget.plan.name,
+                        _getLocalizedPlanName(context, widget.plan.planId) ?? widget.plan.name,
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -593,8 +593,8 @@ class _PlanCardWithValidityOptionsState
               const SizedBox(height: 16),
 
               // Features List
-              const Text(
-                'Features:',
+              Text(
+                AppLocalizations.of(context)!.features,
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
@@ -739,7 +739,7 @@ class _PlanCardWithValidityOptionsState
                   ),
                   child: Text(
                     selectedValidityDays != null
-                        ? 'Purchase plan for Rs ${pricing[selectedValidityDays!]!}'
+                        ? AppLocalizations.of(context)!.purchasePlanForAmount('₹${pricing[selectedValidityDays!]!}')
                         : AppLocalizations.of(context)!.selectValidityPeriod,
                     style: const TextStyle(
                       fontSize: 16,
@@ -761,16 +761,16 @@ class _PlanCardWithValidityOptionsState
     // Dashboard Tabs Features (only for candidate plans)
     if (widget.plan.dashboardTabs != null) {
       if (widget.plan.dashboardTabs!.basicInfo.enabled) {
-        features.add(_buildFeatureItem('✓ Basic Info'));
+        features.add(_buildFeatureItem('✓ ${AppLocalizations.of(context)!.basicInfo}'));
       }
 
       if (widget.plan.dashboardTabs!.manifesto.enabled) {
-        features.add(_buildFeatureItem('✓ Manifesto'));
+        features.add(_buildFeatureItem('✓ ${AppLocalizations.of(context)!.manifesto}'));
         if (widget.plan.dashboardTabs!.manifesto.features.pdfUpload) {
-          features.add(_buildFeatureItem('  • PDF Upload'));
+          features.add(_buildFeatureItem('  • ${AppLocalizations.of(context)!.pdfUpload}'));
         }
         if (widget.plan.dashboardTabs!.manifesto.features.videoUpload) {
-          features.add(_buildFeatureItem('  • Video Upload'));
+          features.add(_buildFeatureItem('  • ${AppLocalizations.of(context)!.videoUpload}'));
         }
       }
 
@@ -780,41 +780,41 @@ class _PlanCardWithValidityOptionsState
             ? 'Unlimited'
             : widget.plan.dashboardTabs!.achievements.maxAchievements
                   .toString();
-        features.add(_buildFeatureItem('✓ Achievements ($max)'));
+        features.add(_buildFeatureItem('✓ ${AppLocalizations.of(context)!.achievements(max)}'));
       }
 
       if (widget.plan.dashboardTabs!.media.enabled) {
         final max = widget.plan.dashboardTabs!.media.maxMediaItems == -1
             ? 'Unlimited'
             : widget.plan.dashboardTabs!.media.maxMediaItems.toString();
-        features.add(_buildFeatureItem('✓ Media ($max items)'));
+        features.add(_buildFeatureItem('✓ ${AppLocalizations.of(context)!.mediaItems(max)}'));
       }
 
       if (widget.plan.dashboardTabs!.contact.enabled) {
-        features.add(_buildFeatureItem('✓ Contact'));
+        features.add(_buildFeatureItem('✓ ${AppLocalizations.of(context)!.contact}'));
       }
 
       if (widget.plan.dashboardTabs!.events.enabled) {
         final max = widget.plan.dashboardTabs!.events.maxEvents == -1
             ? 'Unlimited'
             : widget.plan.dashboardTabs!.events.maxEvents.toString();
-        features.add(_buildFeatureItem('✓ Events ($max)'));
+        features.add(_buildFeatureItem('✓ ${AppLocalizations.of(context)!.events(max)}'));
       }
 
       if (widget.plan.dashboardTabs!.analytics.enabled) {
-        features.add(_buildFeatureItem('✓ Analytics'));
+        features.add(_buildFeatureItem('✓ ${AppLocalizations.of(context)!.analytics}'));
       }
     }
 
     // Profile Features
     if (widget.plan.profileFeatures.premiumBadge) {
-      features.add(_buildFeatureItem('✓ Premium Badge'));
+      features.add(_buildFeatureItem('✓ ${AppLocalizations.of(context)!.premiumBadge}'));
     }
     if (widget.plan.profileFeatures.sponsoredBanner) {
-      features.add(_buildFeatureItem('✓ Sponsored Banner'));
+      features.add(_buildFeatureItem('✓ ${AppLocalizations.of(context)!.sponsoredBanner}'));
     }
     if (widget.plan.profileFeatures.highlightCarousel) {
-      features.add(_buildFeatureItem('✓ Highlight Banner on Home Screen'));
+      features.add(_buildFeatureItem('✓ ${AppLocalizations.of(context)!.highlightBanner}'));
     }
 
     return features;
@@ -833,47 +833,45 @@ class _PlanCardWithValidityOptionsState
     // Dashboard Tabs Features - Compact version (only for candidate plans)
     if (widget.plan.dashboardTabs != null) {
       if (widget.plan.dashboardTabs!.basicInfo.enabled) {
-        features.add(_buildCompactFeatureItem('✓ Basic Info'));
+        features.add(_buildCompactFeatureItem('✓ ${AppLocalizations.of(context)!.basicInfo}'));
       }
 
       if (widget.plan.dashboardTabs!.manifesto.enabled) {
-        features.add(_buildCompactFeatureItem('✓ Manifesto'));
+        features.add(_buildCompactFeatureItem('✓ ${AppLocalizations.of(context)!.manifesto}'));
       }
 
       if (widget.plan.dashboardTabs!.media.enabled) {
-        features.add(_buildCompactFeatureItem('✓ Media Upload'));
+        features.add(_buildCompactFeatureItem('✓ ${AppLocalizations.of(context)!.mediaItems('')}'));
       }
 
       if (widget.plan.dashboardTabs!.analytics.enabled) {
-        features.add(_buildCompactFeatureItem('✓ Analytics'));
+        features.add(_buildCompactFeatureItem('✓ ${AppLocalizations.of(context)!.analytics}'));
       }
 
       if (widget.plan.dashboardTabs!.achievements.enabled) {
-        features.add(_buildCompactFeatureItem('✓ Achievements'));
+        features.add(_buildCompactFeatureItem('✓ ${AppLocalizations.of(context)!.achievements('')}'));
       }
 
       if (widget.plan.dashboardTabs!.contact.enabled) {
-        features.add(_buildCompactFeatureItem('✓ Contact'));
+        features.add(_buildCompactFeatureItem('✓ ${AppLocalizations.of(context)!.contact}'));
       }
 
       if (widget.plan.dashboardTabs!.events.enabled) {
-        features.add(_buildCompactFeatureItem('✓ Events'));
+        features.add(_buildCompactFeatureItem('✓ ${AppLocalizations.of(context)!.events('')}'));
       }
     }
 
     // Profile Features - Compact version
     if (widget.plan.profileFeatures.premiumBadge) {
-      features.add(_buildCompactFeatureItem('✓ Premium Badge'));
+      features.add(_buildCompactFeatureItem('✓ ${AppLocalizations.of(context)!.premiumBadge}'));
     }
 
     if (widget.plan.profileFeatures.sponsoredBanner) {
-      features.add(_buildCompactFeatureItem('✓ Sponsored Banner'));
+      features.add(_buildCompactFeatureItem('✓ ${AppLocalizations.of(context)!.sponsoredBanner}'));
     }
 
     if (widget.plan.profileFeatures.highlightCarousel) {
-      features.add(
-        _buildCompactFeatureItem('✓ Highlight Banner on Home Screen'),
-      );
+      features.add(_buildCompactFeatureItem('✓ ${AppLocalizations.of(context)!.highlightBanner}'));
     }
 
     return features;
@@ -929,6 +927,25 @@ class _PlanCardWithValidityOptionsState
     } catch (e) {
       AppLogger.monetization('Error getting current user ward: $e');
       return null;
+    }
+  }
+
+  // Helper method to get localized plan name
+  String? _getLocalizedPlanName(BuildContext context, String planId) {
+    switch (planId) {
+      case 'free_plan':
+        return AppLocalizations.of(context)!.freePlanName;
+      case 'basic_plan':
+        return AppLocalizations.of(context)!.basicPlanName;
+      case 'gold_plan':
+        return AppLocalizations.of(context)!.goldPlanName;
+      case 'platinum_plan':
+        return AppLocalizations.of(context)!.platinumPlanName;
+      case 'highlight_plan':
+      case 'highlight': // In case the planId contains 'highlight'
+        return AppLocalizations.of(context)!.highlightPlanName;
+      default:
+        return null; // Fall back to plan.name from database
     }
   }
 }

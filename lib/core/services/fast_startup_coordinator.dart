@@ -131,23 +131,17 @@ class FastStartupCoordinator {
       // Continue with normal authentication flow
       AppLogger.core('🔐 Proceeding with normal authentication flow...');
 
-      // Parallel auth and app state check - ULTRA-FAST 2-SECOND SILENT LOGIN
-      final futures = [
-        // Fast auth check - Optimized for 2-second silent login detection
-        FirebaseAuth.instance.authStateChanges().first.timeout(
-          const Duration(seconds: 2), // ⚡ 2-Second silent login as requested
-          onTimeout: () => null,
-        ),
-        // App state check
-        _getAppState(),
-        // Quick user status check (if logged in)
-        Future.value(null), // Placeholder for user data
-      ];
+      // App state check
+      final appState = await _getAppState();
 
-      final results = await Future.wait(futures);
-      final user = results[0] as User?;
-      final appState = results[1] as Map<String, dynamic>;
+      // Allow brief time for Firebase auth persistence to restore from IndexedDB
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // Check current user directly (more reliable than stream for persistent auth)
+      final user = FirebaseAuth.instance.currentUser;
       final isLoggedIn = user != null;
+
+      AppLogger.core('🔐 Auth check result after delay: user=${user?.uid ?? 'null'}, isLoggedIn=$isLoggedIn');
 
       // Determine initial route - normal authentication flow
       String initialRoute;

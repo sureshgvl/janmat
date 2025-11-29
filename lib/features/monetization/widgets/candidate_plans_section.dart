@@ -25,7 +25,7 @@ class CandidatePlansSection extends StatelessWidget {
     try {
       AppLogger.monetization('🔍 [CandidatePlansSection] Checking plan eligibility for highlights (requires Platinum)...');
 
-      // Ensure user model is loaded
+      // First ensure user model is loaded
       if (controller.currentUserModel.value == null) {
         AppLogger.monetization('⏳ [CandidatePlansSection] User model not loaded, loading now...');
         await controller.loadUserStatusData();
@@ -35,43 +35,34 @@ class CandidatePlansSection extends StatelessWidget {
       final userModel = controller.currentUserModel.value;
       if (userModel != null) {
         // Highlight plans require Platinum plan
-        final hasAccess = userModel.premium == true &&
-                         userModel.subscriptionPlanId == 'platinum_plan';
-        AppLogger.monetization('✅ [CandidatePlansSection] User model check: premium=${userModel.premium}, planId=${userModel.subscriptionPlanId}, hasAccess=$hasAccess');
+        final hasPlatinumAccess = userModel.premium == true &&
+                                 userModel.subscriptionPlanId == 'platinum_plan';
 
-        if (hasAccess) {
-          AppLogger.monetization('✅ [CandidatePlansSection] User has Platinum plan - access to highlight plans granted');
-          return true;
+        // Check for active highlight subscription if user has Platinum
+        if (hasPlatinumAccess) {
+          final currentUser = FirebaseAuth.instance.currentUser;
+          if (currentUser == null) {
+            AppLogger.monetization('❌ [CandidatePlansSection] No current user');
+            return false;
+          }
+
+          final highlightSubscription = await controller.getActiveSubscription(
+            currentUser.uid,
+            'highlight',
+          );
+          final hasHighlightSubscription = highlightSubscription?.isActive == true &&
+                                         highlightSubscription?.planId?.startsWith('highlight') == true;
+
+          AppLogger.monetization('✅ [CandidatePlansSection] Platinum user - highlight access: $hasHighlightSubscription');
+          return hasHighlightSubscription;
         } else {
-          AppLogger.monetization('⚠️ [CandidatePlansSection] User needs Platinum plan for highlights (current: ${userModel.subscriptionPlanId})');
+          AppLogger.monetization('⚠️ [CandidatePlansSection] User needs Platinum plan for highlight plans');
           return false;
         }
       }
 
-      // Fallback: check active subscriptions for Platinum plan
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null) {
-        AppLogger.monetization('❌ [CandidatePlansSection] No current user');
-        return false;
-      }
-
-      // Check for active Platinum subscription
-      final candidateSubscription = await controller.getActiveSubscription(
-        currentUser.uid,
-        'candidate',
-      );
-      final hasPlatinumAccess = candidateSubscription?.isActive == true &&
-                               candidateSubscription?.planId == 'platinum_plan';
-
-      final highlightSubscription = await controller.getActiveSubscription(
-        currentUser.uid,
-        'highlight',
-      );
-      final hasHighlightAccess = highlightSubscription?.isActive ?? false;
-
-      final hasAccess = hasPlatinumAccess || hasHighlightAccess;
-      AppLogger.monetization('✅ [CandidatePlansSection] Subscription check result: $hasAccess (platinum: $hasPlatinumAccess, highlight: ${highlightSubscription?.planId})');
-      return hasAccess;
+      AppLogger.monetization('❌ [CandidatePlansSection] Could not determine highlight access');
+      return false;
     } catch (e) {
       AppLogger.monetization('❌ [CandidatePlansSection] Error checking plan eligibility: $e');
       return false;
@@ -376,7 +367,7 @@ class CandidatePlansSection extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '• Up to 4 banners on home screen\n• Premium visibility for your campaign\n• Requires Platinum Plan to unlock',
+              '• Up to 4 banners on home screen\n• Premium visibility for your campaign\n• Separate purchase to unlock additional features',
               style: TextStyle(
                 color: Colors.blue[700],
                 fontSize: 11,
@@ -582,19 +573,23 @@ class CandidatePlansSection extends StatelessWidget {
         planWidgets.addAll(_showPlatinumPlans(premiumPlans));
       }
 
-      if (highlightPlans.isNotEmpty) {
-        if (premiumPlans.isNotEmpty) {
-          planWidgets.add(const SizedBox(height: 20));
-        }
-        planWidgets.addAll(_showHighlightPlans(highlightPlans));
-      }
+      // Only show highlight and carousel plans if user has Platinum plan
+      
 
-      if (carouselPlans.isNotEmpty) {
         if (highlightPlans.isNotEmpty) {
-          planWidgets.add(const SizedBox(height: 20));
+          if (premiumPlans.isNotEmpty) {
+            planWidgets.add(const SizedBox(height: 20));
+          }
+          planWidgets.addAll(_showHighlightPlans(highlightPlans));
         }
-        planWidgets.addAll(_showCarouselPlans(carouselPlans));
-      }
+
+        if (carouselPlans.isNotEmpty) {
+          if (highlightPlans.isNotEmpty) {
+            planWidgets.add(const SizedBox(height: 20));
+          }
+          planWidgets.addAll(_showCarouselPlans(carouselPlans));
+        }
+      
 
       AppLogger.monetization('📋 [CandidatePlansSection] Final plan widgets count: ${planWidgets.length}');
 

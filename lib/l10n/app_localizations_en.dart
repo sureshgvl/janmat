@@ -528,6 +528,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String purchasePlanForAmount(Object amount) {
+    return 'Purchase plan for Rs $amount';
+  }
+
+  @override
+  String get keyFeatures => 'Key Features';
+
+  @override
   String get electionTypeUpper => 'MUNICIPAL CORPORATION';
 
   @override
@@ -715,6 +723,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get platinumPlanName => 'Platinum Plan';
+
+  @override
+  String get highlightPlanName => 'Highlight Plan';
 
   @override
   String get activeFreePlan => 'Active Free Plan';
