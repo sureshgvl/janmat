@@ -28,13 +28,17 @@ class FailedUpload {
 
 /// Manages file storage operations across platforms
 class FileStorageManager {
-    static const String tempDirName = 'manifesto_temp';
+  static const String tempDirName = 'manifesto_temp';
   final Map<String, Uint8List> _webFileData = {}; // Web file data storage
+  static const int _maxWebDataSizeMB = 20; // Maximum 20MB of web file data to prevent browser storage quota issues
+  int _currentWebDataSize = 0; // Track current size in bytes
 
   /// Save file temporarily for preview (unified approach)
   Future<String?> saveTempFile(dynamic file, String type) async {
     try {
-      AppLogger.candidate('💾 [FileStorage] Saving $type file temporarily for preview...');
+      AppLogger.candidate(
+        '💾 [FileStorage] Saving $type file temporarily for preview...',
+      );
 
       if (kIsWeb) {
         return await _saveWebFile(file, type);
@@ -53,16 +57,38 @@ class FileStorageManager {
 
     if (file is XFile) {
       final bytes = await file.readAsBytes();
+
+      // Check if adding this file would exceed storage limit
+      if (_currentWebDataSize + bytes.length > _maxWebDataSizeMB * 1024 * 1024) {
+        // Clean up old files to make space
+        await _cleanupWebDataToMakeSpace(bytes.length);
+      }
+
       _webFileData[tempId] = bytes;
-      // AppLogger.candidate('🌐 [FileStorage] Web $type stored in memory: $tempId (${bytes.length} bytes)'); // COMMENTED OUT - HIDES BYTES LOG
+      _currentWebDataSize += bytes.length;
+
+      AppLogger.candidate('🌐 [FileStorage] Web $type stored: $tempId (${(bytes.length / (1024 * 1024)).toStringAsFixed(2)} MB), total: ${(_currentWebDataSize / (1024 * 1024)).toStringAsFixed(2)} MB)');
       return 'temp:$tempId:$type:${file.name}:$bytes.length';
+
     } else if (file is file_picker.PlatformFile && file.bytes != null) {
-      _webFileData[tempId] = file.bytes!;
-      // AppLogger.candidate('🌐 [FileStorage] Web $type stored in memory: $tempId (${file.bytes!.length} bytes)'); // COMMENTED OUT - HIDES BYTES LOG
-      return 'temp:$tempId:$type:${file.name}:${file.size}'; // Use $type instead of hardcoded 'pdf'
+      final bytes = file.bytes!;
+
+      // Check if adding this file would exceed storage limit
+      if (_currentWebDataSize + bytes.length > _maxWebDataSizeMB * 1024 * 1024) {
+        // Clean up old files to make space
+        await _cleanupWebDataToMakeSpace(bytes.length);
+      }
+
+      _webFileData[tempId] = bytes;
+      _currentWebDataSize += bytes.length;
+
+      AppLogger.candidate('🌐 [FileStorage] Web $type stored: $tempId (${(bytes.length / (1024 * 1024)).toStringAsFixed(2)} MB), total: ${(_currentWebDataSize / (1024 * 1024)).toStringAsFixed(2)} MB)');
+      return 'temp:$tempId:$type:${file.name}:${file.size}';
     }
 
-    throw Exception('Unsupported web file type: ${file.runtimeType} for type $type');
+    throw Exception(
+      'Unsupported web file type: ${file.runtimeType} for type $type',
+    );
   }
 
   /// Save local file to temp directory
@@ -76,13 +102,16 @@ class FileStorageManager {
       final localDir = Directory('${directory.path}/$tempDirName');
       if (!await localDir.exists()) {
         await localDir.create(recursive: true);
-        AppLogger.candidate('💾 [FileStorage] Created temp directory: ${localDir.path}');
+        AppLogger.candidate(
+          '💾 [FileStorage] Created temp directory: ${localDir.path}',
+        );
       }
 
       // Generate unique filename
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final userId = 'unknown_user'; // This should be passed from context
-      final fileName = 'temp_${type}_${userId}_$timestamp.${type == 'pdf' ? 'pdf' : 'tmp'}';
+      final fileName =
+          'temp_${type}_${userId}_$timestamp.${type == 'pdf' ? 'pdf' : 'tmp'}';
       final localPath = '${localDir.path}/$fileName';
 
       // Save file locally
@@ -95,15 +124,21 @@ class FileStorageManager {
         } else if (file.path != null) {
           // Mobile platform
           await File(file.path!).copy(localPath);
-          AppLogger.candidate('💾 [FileStorage] Copied mobile file to: $localPath');
+          AppLogger.candidate(
+            '💾 [FileStorage] Copied mobile file to: $localPath',
+          );
         }
       } else if (file is XFile) {
         // Image picker file
         await File(file.path).copy(localPath);
-        AppLogger.candidate('💾 [FileStorage] Copied image file to: $localPath');
+        AppLogger.candidate(
+          '💾 [FileStorage] Copied image file to: $localPath',
+        );
       }
 
-      AppLogger.candidate('💾 [FileStorage] File saved successfully at: $localPath');
+      AppLogger.candidate(
+        '💾 [FileStorage] File saved successfully at: $localPath',
+      );
       return localPath;
     } catch (e) {
       AppLogger.candidate('💾 [FileStorage] Error saving local file: $e');
@@ -137,21 +172,85 @@ class FileStorageManager {
               await entity.delete();
               cleanedCount++;
               totalSize += size;
-              AppLogger.candidate('🧹 [FileStorage] Deleted old file: ${entity.path} (${(size / (1024 * 1024)).toStringAsFixed(2)} MB)');
+              AppLogger.candidate(
+                '🧹 [FileStorage] Deleted old file: ${entity.path} (${(size / (1024 * 1024)).toStringAsFixed(2)} MB)',
+              );
             }
           } catch (e) {
-            AppLogger.candidate('⚠️ [FileStorage] Failed to delete ${entity.path}: $e');
+            AppLogger.candidate(
+              '⚠️ [FileStorage] Failed to delete ${entity.path}: $e',
+            );
           }
         }
       }
 
       if (cleanedCount > 0) {
-        AppLogger.candidate('🧹 [FileStorage] Cleaned up $cleanedCount old files, freed ${(totalSize / (1024 * 1024)).toStringAsFixed(2)} MB');
+        AppLogger.candidate(
+          '🧹 [FileStorage] Cleaned up $cleanedCount old files, freed ${(totalSize / (1024 * 1024)).toStringAsFixed(2)} MB',
+        );
       } else {
         AppLogger.candidate('🧹 [FileStorage] No old files to clean');
       }
     } catch (e) {
-      AppLogger.candidate('⚠️ [FileStorage] Error during temp file cleanup: $e');
+      AppLogger.candidate(
+        '⚠️ [FileStorage] Error during temp file cleanup: $e',
+      );
+    }
+  }
+
+  /// Clean up web file data to make space for new files (web only)
+  Future<void> _cleanupWebDataToMakeSpace(int requiredBytes) async {
+    if (!kIsWeb) return;
+
+    try {
+      AppLogger.candidate('🧹 [WebCleanup] Starting web data cleanup, need ${(requiredBytes / (1024 * 1024)).toStringAsFixed(2)} MB space...');
+
+      final maxSizeBytes = _maxWebDataSizeMB * 1024 * 1024;
+      final targetSizeBytes = maxSizeBytes - requiredBytes;
+
+      // If we can't fit the required bytes even after clearing everything, reject
+      if (requiredBytes > maxSizeBytes) {
+        throw Exception('File too large: ${(requiredBytes / (1024 * 1024)).toStringAsFixed(2)} MB exceeds limit of $_maxWebDataSizeMB MB');
+      }
+
+      // Sort files by age (oldest first) - we need to extract timestamps from tempIds
+      final sortedEntries = _webFileData.entries.toList()
+        ..sort((a, b) {
+          // Extract timestamp from tempId (format: web_timestamp)
+          final aTimestamp = int.tryParse(a.key.split('_').last) ?? 0;
+          final bTimestamp = int.tryParse(b.key.split('_').last) ?? 0;
+          return aTimestamp.compareTo(bTimestamp); // Oldest first
+        });
+
+      int cleanedCount = 0;
+      int freedBytes = 0;
+
+      // Remove oldest files until we have enough space
+      for (final entry in sortedEntries) {
+        if (_currentWebDataSize <= targetSizeBytes) break;
+
+        final size = entry.value.length;
+        _webFileData.remove(entry.key);
+        _currentWebDataSize -= size;
+        cleanedCount++;
+        freedBytes += size;
+
+        AppLogger.candidate(
+          '🧹 [WebCleanup] Removed ${entry.key}: ${(size / (1024 * 1024)).toStringAsFixed(2)} MB',
+        );
+      }
+
+      if (cleanedCount > 0) {
+        AppLogger.candidate(
+          '🧹 [WebCleanup] Cleaned up $cleanedCount files, freed ${(freedBytes / (1024 * 1024)).toStringAsFixed(2)} MB. Current size: ${(_currentWebDataSize / (1024 * 1024)).toStringAsFixed(2)} MB',
+        );
+      } else {
+        AppLogger.candidate('🧹 [WebCleanup] No cleanup needed');
+      }
+
+    } catch (e) {
+      AppLogger.candidate('⚠️ [WebCleanup] Error during web data cleanup: $e');
+      rethrow;
     }
   }
 
@@ -159,16 +258,39 @@ class FileStorageManager {
   void cleanupTempFile(String tempPath) {
     try {
       if (kIsWeb && tempPath.startsWith('temp:')) {
-        // Web cleanup: remove from memory
+        // Web cleanup: remove from memory and update size tracking
         final tempId = tempPath.split(':')[1];
-        _webFileData.remove(tempId);
-        AppLogger.candidate('🌐 [FileStorage] Cleaned up web file data for $tempId');
+        final bytes = _webFileData[tempId];
+        if (bytes != null) {
+          _currentWebDataSize -= bytes.length;
+          _webFileData.remove(tempId);
+          AppLogger.candidate(
+            '🌐 [FileStorage] Cleaned up web file data for $tempId, freed ${(bytes.length / (1024 * 1024)).toStringAsFixed(2)} MB',
+          );
+        }
       } else {
         // Local file cleanup
         _cleanupLocalFile(tempPath);
       }
     } catch (e) {
       AppLogger.candidate('⚠️ [FileStorage] Error cleaning up temp file: $e');
+    }
+  }
+
+  /// Clear all web file data (call on app initialization to prevent storage quota issues)
+  void clearAllWebData() {
+    if (!kIsWeb) return;
+
+    final clearedCount = _webFileData.length;
+    final clearedSize = _currentWebDataSize;
+
+    _webFileData.clear();
+    _currentWebDataSize = 0;
+
+    if (clearedCount > 0) {
+      AppLogger.candidate(
+        '🧹 [WebCleanup] Cleared all web data: $clearedCount files, ${(clearedSize / (1024 * 1024)).toStringAsFixed(2)} MB freed',
+      );
     }
   }
 
@@ -179,9 +301,13 @@ class FileStorageManager {
         final file = File(localPath);
         if (await file.exists()) {
           await file.delete();
-          AppLogger.candidate('🧹 [FileStorage] Local file deleted successfully');
+          AppLogger.candidate(
+            '🧹 [FileStorage] Local file deleted successfully',
+          );
         } else {
-          AppLogger.candidate('🧹 [FileStorage] Local file not found, nothing to clean');
+          AppLogger.candidate(
+            '🧹 [FileStorage] Local file not found, nothing to clean',
+          );
         }
       }
     } catch (e) {
@@ -201,13 +327,29 @@ class FileStorageManager {
 
       if (kIsWeb && tempPath.startsWith('temp:')) {
         // Web upload from memory
-        return await _uploadWebFileToStorage(storagePath, file, type, metadata, tempPath);
+        return await _uploadWebFileToStorage(
+          storagePath,
+          file,
+          type,
+          metadata,
+          tempPath,
+        );
       } else if (kIsWeb && tempPath.startsWith('blob:')) {
         // Web upload from blob URL (videos)
-        return await _uploadWebBlobFileToStorage(storagePath, tempPath, type, metadata);
+        return await _uploadWebBlobFileToStorage(
+          storagePath,
+          tempPath,
+          type,
+          metadata,
+        );
       } else {
         // Mobile upload from local file
-        return await _uploadLocalFileToStorage(storagePath, file, metadata, type);
+        return await _uploadLocalFileToStorage(
+          storagePath,
+          file,
+          metadata,
+          type,
+        );
       }
     } catch (e) {
       AppLogger.candidate('❌ [FileStorage] Error uploading file: $e');
@@ -232,7 +374,9 @@ class FileStorageManager {
 
       final bytes = _webFileData[tempId];
       if (bytes != null) {
-        AppLogger.candidate('🌐 [FileStorage] Web upload for $fileType: $originalFileName');
+        AppLogger.candidate(
+          '🌐 [FileStorage] Web upload for $fileType: $originalFileName',
+        );
 
         final unifiedFile = UnifiedFile(
           name: originalFileName,
@@ -249,11 +393,15 @@ class FileStorageManager {
 
         // Clean up memory after successful upload
         _webFileData.remove(tempId);
-        AppLogger.candidate('🌐 [FileStorage] Web file data cleaned up for $tempId');
+        AppLogger.candidate(
+          '🌐 [FileStorage] Web file data cleaned up for $tempId',
+        );
 
         return downloadUrl;
       } else {
-        AppLogger.candidate('⚠️ [FileStorage] Web file data not found for $tempId');
+        AppLogger.candidate(
+          '⚠️ [FileStorage] Web file data not found for $tempId',
+        );
       }
     }
     return null;
@@ -269,7 +417,9 @@ class FileStorageManager {
     // Mobile: Upload from local file
     final localFile = File(file.path);
     if (!await localFile.exists()) {
-      AppLogger.candidate('⚠️ [FileStorage] Local file not found: ${file.path}');
+      AppLogger.candidate(
+        '⚠️ [FileStorage] Local file not found: ${file.path}',
+      );
       return null;
     }
 
@@ -293,27 +443,38 @@ class FileStorageManager {
     String candidateId,
   ) async {
     final Map<String, String> uploadedUrls = {};
-    AppLogger.candidate('🚀 [FileStorage] Starting bulk upload of ${localFiles.length} files...');
+    AppLogger.candidate(
+      '🚀 [FileStorage] Starting bulk upload of ${localFiles.length} files...',
+    );
 
     for (final localFile in localFiles) {
       final type = localFile['type'] as String;
       final tempPath = localFile['localPath'] as String;
       final fileName = localFile['fileName'] as String;
-      final bytes = localFile['bytes'] as Uint8List?; // Check for pre-read bytes
+      final bytes =
+          localFile['bytes'] as Uint8List?; // Check for pre-read bytes
 
       try {
         AppLogger.candidate('🚀 [FileStorage] Uploading $type: $fileName');
 
         final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final storageFileName = '${type}_${candidateId}_$timestamp.${_getFileExtension(type)}';
+        final storageFileName =
+            '${type}_${candidateId}_$timestamp.${_getFileExtension(type)}';
         final storagePath = 'manifesto_files/$candidateId/$storageFileName';
 
         String? downloadUrl;
 
         // If we have pre-read bytes (from web video upload), use them directly
         if (bytes != null && bytes.isNotEmpty) {
-          AppLogger.candidate('🚀 [FileStorage] Using pre-read bytes for $type upload');
-          downloadUrl = await _uploadBytesDirectlyToStorage(bytes, storagePath, type, fileName);
+          AppLogger.candidate(
+            '🚀 [FileStorage] Using pre-read bytes for $type upload',
+          );
+          downloadUrl = await _uploadBytesDirectlyToStorage(
+            bytes,
+            storagePath,
+            type,
+            fileName,
+          );
         } else {
           // Fallback to original method
           downloadUrl = await uploadFileToStorage(
@@ -326,26 +487,36 @@ class FileStorageManager {
 
         if (downloadUrl != null && downloadUrl.isNotEmpty) {
           uploadedUrls[type] = downloadUrl;
-          AppLogger.candidate('✅ [FileStorage] Successfully uploaded $type: $downloadUrl');
+          AppLogger.candidate(
+            '✅ [FileStorage] Successfully uploaded $type: $downloadUrl',
+          );
 
           // Clean up temp file after successful upload
           cleanupTempFile(tempPath);
         } else {
-          AppLogger.candidate('❌ [FileStorage] Failed to upload $type: $fileName');
+          AppLogger.candidate(
+            '❌ [FileStorage] Failed to upload $type: $fileName',
+          );
         }
       } catch (e) {
-        AppLogger.candidate('❌ [FileStorage] Error uploading $type $fileName: $e');
+        AppLogger.candidate(
+          '❌ [FileStorage] Error uploading $type $fileName: $e',
+        );
       }
     }
 
-    AppLogger.candidate('🚀 [FileStorage] Bulk upload completed. Uploaded ${uploadedUrls.length} files.');
+    AppLogger.candidate(
+      '🚀 [FileStorage] Bulk upload completed. Uploaded ${uploadedUrls.length} files.',
+    );
     return uploadedUrls;
   }
 
   /// Delete file from Firebase Storage
   Future<bool> deleteFromStorage(String fileUrl) async {
     try {
-      AppLogger.candidate('🗑️ [FileStorage] Deleting file from Firebase Storage: $fileUrl');
+      AppLogger.candidate(
+        '🗑️ [FileStorage] Deleting file from Firebase Storage: $fileUrl',
+      );
 
       // Validate URL format first
       if (!fileUrl.startsWith('https://firebasestorage.googleapis.com/')) {
@@ -356,10 +527,14 @@ class FileStorageManager {
       final storageRef = FirebaseStorage.instance.refFromURL(fileUrl);
       await storageRef.delete();
 
-      AppLogger.candidate('✅ [FileStorage] File successfully deleted from Firebase Storage');
+      AppLogger.candidate(
+        '✅ [FileStorage] File successfully deleted from Firebase Storage',
+      );
       return true;
     } catch (e) {
-      AppLogger.candidateError('❌ [FileStorage] Failed to delete from storage: $e');
+      AppLogger.candidateError(
+        '❌ [FileStorage] Failed to delete from storage: $e',
+      );
       return false;
     }
   }
@@ -416,7 +591,9 @@ class FileStorageManager {
     try {
       final metadata = _createMetadata(type);
 
-      AppLogger.candidate('🚀 [FileStorage] Direct bytes upload for $type: $fileName (${bytes.length} bytes)');
+      AppLogger.candidate(
+        '🚀 [FileStorage] Direct bytes upload for $type: $fileName (${bytes.length} bytes)',
+      );
 
       final unifiedFile = UnifiedFile(
         name: fileName,
@@ -447,12 +624,15 @@ class FileStorageManager {
   ) async {
     try {
       // Extract filename from blob URL if possible, otherwise use generic name
-      String originalFileName = 'video_${DateTime.now().millisecondsSinceEpoch}.mp4';
+      String originalFileName =
+          'video_${DateTime.now().millisecondsSinceEpoch}.mp4';
 
       // Read bytes from blob URL using web APIs
       final bytes = await _readBlobAsBytes(blobUrl);
 
-      AppLogger.candidate('🌐 [FileStorage] Web blob upload for $type: $originalFileName');
+      AppLogger.candidate(
+        '🌐 [FileStorage] Web blob upload for $type: $originalFileName',
+      );
 
       final unifiedFile = UnifiedFile(
         name: originalFileName,
@@ -492,7 +672,9 @@ class FileStorageManager {
           // Convert ByteBuffer to Uint8List
           completer.complete(Uint8List.view(result));
         } else {
-          completer.completeError('Failed to read blob as bytes: unexpected result type ${result.runtimeType}');
+          completer.completeError(
+            'Failed to read blob as bytes: unexpected result type ${result.runtimeType}',
+          );
         }
       });
 
@@ -518,7 +700,11 @@ class FileStorageManager {
   }
 
   /// Get storage path for candidate files
-  static String getStoragePath(String candidateId, String type, String fileName) {
+  static String getStoragePath(
+    String candidateId,
+    String type,
+    String fileName,
+  ) {
     return 'manifesto/${type}s/${type}_${candidateId}_${DateTime.now().millisecondsSinceEpoch}.${fileName.split('.').last}';
   }
 
@@ -529,7 +715,9 @@ class FileStorageManager {
       final downloadUrl = await storageRef.getDownloadURL();
       return downloadUrl;
     } catch (e) {
-      AppLogger.candidateError('❌ [FileStorage] Failed to get download URL: $e');
+      AppLogger.candidateError(
+        '❌ [FileStorage] Failed to get download URL: $e',
+      );
       return null;
     }
   }

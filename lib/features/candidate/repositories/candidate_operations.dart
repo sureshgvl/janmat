@@ -309,7 +309,7 @@ class CandidateOperations {
           AppLogger.candidate('🏆 [ACHIEVEMENTS_DATA] Final candidate achievements count: ${candidate.achievements?.length ?? "null"}');
 
           AppLogger.candidate(
-            '✅ Found candidate: ${candidateData['name']} (ID: ${doc.id})',
+            '✅ Found candidate: ${candidateData['basic_info']['fullName']} (ID: ${doc.id})',
           );
           return candidate;
         }

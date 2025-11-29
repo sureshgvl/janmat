@@ -278,28 +278,9 @@ class FileUploadHandler {
       final isFreePlan = plan == null || plan.dashboardTabs?.manifesto.enabled != true;
 
       if (isFreePlan) {
-        // Free plan cannot upload videos
+        // Free plan cannot upload videos - show upgrade dialog
         if (mounted) {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Premium Feature Required'),
-              content: const Text('Video upload is a premium feature. Upgrade to Gold or Platinum plan to add videos to your manifesto.'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    Get.toNamed(AppRouteNames.monetization);
-                  },
-                  child: const Text('Upgrade Now'),
-                ),
-              ],
-            ),
-          );
+          await UpgradePlanDialog.showVideoUploadRestricted(context: context);
         }
         return;
       }
@@ -481,8 +462,10 @@ class FileUploadHandler {
     // Free plan restriction for images
     if (isFreePlan && permission == ImageUploadPlanPermission.image) {
       if (mounted) {
-        final result = await UpgradePlanDialog.showImageUploadRestricted(context: context);
-        return result == true;
+        await UpgradePlanDialog.showImageUploadRestricted(context: context);
+        // Always return false after showing dialog - user needs to actually upgrade first
+        // The dialog handles navigation to monetization screen
+        return false;
       }
       return false;
     }

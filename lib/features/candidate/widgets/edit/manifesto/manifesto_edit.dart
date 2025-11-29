@@ -3,17 +3,19 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:get/get.dart';
 import 'package:janmat/features/candidate/controllers/candidate_user_controller.dart';
+import 'package:janmat/features/candidate/controllers/upload_controller.dart';
 import 'package:janmat/features/candidate/models/candidate_model.dart';
 import 'package:janmat/features/candidate/models/manifesto_model.dart';
 import 'package:janmat/features/candidate/widgets/edit/promise_management_section.dart';
-import 'package:janmat/features/common/file_upload_section.dart';
 import 'package:janmat/l10n/app_localizations.dart';
 import 'package:janmat/utils/app_logger.dart';
 import 'package:janmat/utils/snackbar_utils.dart';
 import '../../../../common/file_storage_manager.dart';
 import '../../../../../core/media/media_file.dart';
 import '../../../../../core/media/media_upload_handler.dart';
+import 'manifesto_file_section.dart';
 
 
 class ManifestoTabEdit extends StatefulWidget {
@@ -169,25 +171,26 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Language Selection
-                Row(
-                  children: [
-                    Text('Language: ', style: TextStyle(fontWeight: FontWeight.w500)),
-                    const SizedBox(width: 8),
-                    SegmentedButton<String>(
-                      segments: const [
-                        ButtonSegment(value: 'en', label: Text('English')),
-                        ButtonSegment(value: 'mr', label: Text('मराठी')),
-                      ],
-                      selected: {selectedLanguage},
-                      onSelectionChanged: (Set<String> selection) {
-                        setState(() {
-                          selectedLanguage = selection.first;
-                        });
-                      },
-                    ),
+            // Language Selection
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                //Text('Language: ', style: TextStyle(fontWeight: FontWeight.w500)),
+                const SizedBox(height: 8),
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'en', label: Text('English')),
+                    ButtonSegment(value: 'mr', label: Text('मराठी')),
                   ],
+                  selected: {selectedLanguage},
+                  onSelectionChanged: (Set<String> selection) {
+                    setState(() {
+                      selectedLanguage = selection.first;
+                    });
+                  },
                 ),
+              ],
+            ),
                 const SizedBox(height: 16),
 
                 // Title Options
@@ -223,6 +226,8 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
                             child: Text(
                               title,
                               style: const TextStyle(fontSize: 14),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
@@ -345,6 +350,23 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
         AppLogger.candidate('🗑️ [Save] Marked files deleted successfully');
       }
 
+      // Check if we have files from the new UploadController
+      final uploadController = Get.find<UploadController>(tag: null);
+      if (uploadController.localFiles.isNotEmpty) {
+        // Convert MediaFile objects to the format expected by the old upload logic
+        for (final mediaFile in uploadController.localFiles) {
+          final fileEntry = {
+            'type': mediaFile.type,
+            'fileName': mediaFile.name,
+            'fileSize': mediaFile.size,
+            'bytes': mediaFile.bytes,
+            'localPath': 'temp:${DateTime.now().millisecondsSinceEpoch}_${mediaFile.name}',
+          };
+          _localFiles.add(fileEntry);
+        }
+        AppLogger.candidate('📁 [Upload] Added ${uploadController.localFiles.length} files from UploadController');
+      }
+
       // Use the FileStorageManager's unified upload logic with stored _localFiles
       final uploadedUrls = await _uploadLocalFilesUsingStorageManager();
 
@@ -362,6 +384,9 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
         if (uploadedUrls['video'] != null) {
           widget.onManifestoVideoChange(uploadedUrls['video']!);
         }
+
+        // Clear files from UploadController after successful upload
+        uploadController.localFiles.clear();
       }
 
       return true;
@@ -776,21 +801,15 @@ class ManifestoTabEditState extends State<ManifestoTabEdit> {
         ),
         const SizedBox(height: 12),
 
-        // Upload section - now handles both upload and change operations
-        FileUploadSection(
-          candidateData: widget.candidateData,
-          isEditing: widget.isEditing,
+        // Upload section - now uses clean architecture with separate components
+        ManifestoFileSection(
+          candidate: widget.candidateData,
           existingPdfUrl: data.manifestoData?.pdfUrl,
           existingImageUrl: data.manifestoData?.image,
           existingVideoUrl: data.manifestoData?.videoUrl,
-          onManifestoPdfChange: widget.onManifestoPdfChange,
-          onManifestoImageChange: widget.onManifestoImageChange,
-          onManifestoVideoChange: widget.onManifestoVideoChange,
-          onLocalFilesUpdate: (files) => setState(() => _localFiles = files),
-          onFileMarkedForDeletion: (fileType, marked) {
-            // Handle file deletion marking for change operations
-            setState(() => _filesMarkedForDeletion[fileType] = marked);
-          },
+          onPdfUrlChange: widget.onManifestoPdfChange,
+          onImageUrlChange: widget.onManifestoImageChange,
+          onVideoUrlChange: widget.onManifestoVideoChange,
         ),
       ],
     );

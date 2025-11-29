@@ -6,6 +6,7 @@ import 'package:janmat/services/background_sync_manager.dart';
 import 'package:janmat/services/background_initializer.dart';
 import 'package:janmat/utils/app_logger.dart';
 import 'package:janmat/utils/background_sync_manager.dart' as bg_sync;
+import 'package:janmat/features/candidate/controllers/candidate_user_controller.dart';
 
 /// Service for preloading home screen data using background services
 class HomeDataPreloader {
@@ -19,6 +20,7 @@ class HomeDataPreloader {
   final bg_sync.BackgroundSyncManager _utilsSync = bg_sync.BackgroundSyncManager();
 
   bool _isPreloading = false;
+  final Set<String> _preloadingUsers = {}; // Track users currently being preloaded
   final StreamController<bool> _preloadStatusController = StreamController<bool>.broadcast();
   Stream<bool> get preloadStatusStream => _preloadStatusController.stream;
 
@@ -77,11 +79,12 @@ class HomeDataPreloader {
 
   /// Preload home data for authenticated user
   Future<void> preloadHomeDataForUser(String uid) async {
-    if (_isPreloading) {
-      AppLogger.common('⏳ Home data preload already in progress');
+    if (_preloadingUsers.contains(uid)) {
+      AppLogger.common('⏳ Home data preload already in progress for user: $uid');
       return;
     }
 
+    _preloadingUsers.add(uid);
     _isPreloading = true;
     _preloadStatusController.add(true);
 
@@ -99,6 +102,7 @@ class HomeDataPreloader {
     } catch (e) {
       AppLogger.commonError('❌ Home data preload failed', error: e);
     } finally {
+      _preloadingUsers.remove(uid);
       _isPreloading = false;
       _preloadStatusController.add(false);
     }
@@ -108,6 +112,13 @@ class HomeDataPreloader {
   Future<void> _preloadUserData(String uid) async {
     _backgroundSync.addToSyncQueue(() async {
       AppLogger.common('🔄 Background preload: User data for $uid');
+
+      // Check if candidate data is already loaded to avoid redundant Firebase calls
+      final candidateController = CandidateUserController.to;
+      if (candidateController.isInitialized.value && candidateController.candidate.value != null) {
+        AppLogger.common('ℹ️ Background preload: Candidate data already loaded for $uid, skipping Firebase call');
+        return;
+      }
 
       // This will populate cache automatically via HomeServices
       final result = await _homeServices.getUserData(uid);

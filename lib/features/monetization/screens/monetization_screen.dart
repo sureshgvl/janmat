@@ -84,6 +84,9 @@ class _MonetizationScreenState extends State<MonetizationScreen> {
 
   Future<void> _loadUserData() async {
     try {
+      // Set loading state to show loading indicator
+      _controller.isLoading.value = true;
+
       AppLogger.monetization('🔄 MONETIZATION SCREEN: Loading user data...');
       final currentUser = FirebaseAuth.instance.currentUser;
 
@@ -122,6 +125,11 @@ class _MonetizationScreenState extends State<MonetizationScreen> {
       }
     } catch (e) {
       AppLogger.monetization('❌ Error loading user data: $e');
+    } finally {
+      // Always reset loading state if widget is still mounted
+      if (mounted) {
+        _controller.isLoading.value = false;
+      }
     }
   }
 
@@ -150,6 +158,7 @@ class _MonetizationScreenState extends State<MonetizationScreen> {
         backgroundColor: AppTheme.homeBackgroundColor,
         body: LoadingOverlay(
           isLoading: _controller.isLoading.value,
+          loadingText: _controller.plans.isNotEmpty ? 'Refreshing plans...' : 'Loading premium plans...',
           child: PremiumPlansTab(
             controller: _controller,
             userElectionType: _userElectionType.value,

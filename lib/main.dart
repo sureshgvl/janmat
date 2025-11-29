@@ -18,6 +18,7 @@ import 'dart:io';
 // Remove unused import that was causing compilation issues
 
 import 'features/common/animated_splash_screen.dart';
+import 'features/common/file_storage_manager.dart';
 import 'core/app_bindings.dart';
 import 'core/app_initializer.dart';
 import 'core/app_routes.dart';
@@ -203,39 +204,8 @@ Future<String> _getUserFlowRoute(User? user) async {
 
       AppLogger.core('✅ User data: role="$role", roleSelected=$roleSelected, profileCompleted=$profileCompleted');
 
-      // 🔄 LEGACY USER COMPATIBILITY
-      if (!roleSelected && role.isNotEmpty && (role == 'candidate' || role == 'voter')) {
-        AppLogger.core('🚨 LEGACY USER: Setting flags and going to home');
-        FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-          'roleSelected': true,
-          'profileCompleted': true,
-        }).catchError((e) => AppLogger.core('⚠️ Legacy update failed: $e'));
-        return AppRouteNames.home;
-      }
-
-      // 🛠️ CORRUPTION FIX: Check if user has missing role but is an existing candidate
-      if (!roleSelected && role.isEmpty && userData?['candidateId'] != null && userData!['candidateId'].toString().isNotEmpty) {
-        AppLogger.core('✅ EXISTING CANDIDATE DETECTED: Auto-setting role to candidate (candidateId exists)');
-
-        // Auto-fix the corrupted user document
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-          'role': 'candidate',
-          'roleSelected': true,
-          'profileCompleted': true, // Assume existing candidates have completed profiles
-        }).catchError((e) => AppLogger.core('⚠️ Candidate role fix failed: $e'));
-
-        // Sync UserStatusManager with corrected data
-        await _syncUserStatusManager(user.uid,
-          role: 'candidate',
-          roleSelected: true,
-          profileCompleted: true,
-        );
-
-        AppLogger.core('🎯 → Home screen (existing candidate auto-fixed)');
-        return AppRouteNames.home;
-      }
-
-      // 🎯 CLEAN FLOW CONTROL: Navigate before reaching home screen
+      // 🎯 CLEAN FLOW CONTROL: Navigate based on user completion status
+      // Database is fresh - no legacy or corruption fixes needed
       if (!roleSelected) {
         AppLogger.core('🎯 → Role selection screen');
         return AppRouteNames.roleSelection;
@@ -378,6 +348,18 @@ void main() async {
 
   // Initialize CacheService after Hive
   await CacheService.initialize();
+
+  // Clear web file data on startup to prevent storage quota issues
+  if (kIsWeb) {
+    try {
+      // Import here to avoid circular dependencies
+      final fileStorageManager = FileStorageManager();
+      fileStorageManager.clearAllWebData();
+      AppLogger.core('🧹 Cleared web file data on app startup');
+    } catch (e) {
+      AppLogger.core('⚠️ Failed to clear web file data on startup: $e');
+    }
+  }
 
   // 🚀 SMART PERSISTENCE: Uses Firebase defaults (works on web & mobile without crashes)
   // Note: Firebase automatically chooses optimal persistence per platform
